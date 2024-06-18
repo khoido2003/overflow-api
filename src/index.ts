@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 // import rateLimit from "express-rate-limit";
 
 import routesHandler from "./routers/index";
+import { db } from "db";
 
 const app = express();
 
@@ -53,6 +54,11 @@ server.listen(process.env.SERVER_PORT || 8006, () => {
 
 // Handle routes in server
 app.use("/", routesHandler());
+
+process.on("SIGINT", async () => {
+  await db.$disconnect();
+  process.exit(0);
+});
 
 process.on("unhandledRejection", (error) => {
   console.log(error);
