@@ -1,14 +1,9 @@
 import express from "express";
 
+import { signUp } from "../controllers/auth-controller";
+
 const auth = (router: express.Router) => {
-  router.get("/login", (req: express.Request, res: express.Response) => {
-    return res
-      .status(200)
-      .json({
-        message: "Hello, world!",
-      })
-      .end();
-  });
+  router.post("/register", signUp);
 };
 
 export default auth;

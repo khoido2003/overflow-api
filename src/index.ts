@@ -8,8 +8,9 @@ import dotenv from "dotenv";
 // import xssClean from "xss-clean";
 // import rateLimit from "express-rate-limit";
 
+import { db } from "./lib/db";
 import routesHandler from "./routers/index";
-import { db } from "db";
+import errorController from "./controllers/error-controller";
 
 const app = express();
 
@@ -53,7 +54,16 @@ server.listen(process.env.SERVER_PORT || 8006, () => {
 });
 
 // Handle routes in server
-app.use("/", routesHandler());
+app.use("/api/v1", routesHandler());
+
+app.all(
+  "*",
+  (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    next();
+  }
+);
+
+app.use(errorController);
 
 process.on("SIGINT", async () => {
   await db.$disconnect();
