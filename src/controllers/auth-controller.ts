@@ -1,5 +1,5 @@
 import express from "express";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
@@ -7,9 +7,14 @@ import { db } from "../lib/db";
 import { User } from "@prisma/client";
 import { loginValidator, signUpValidator } from "../lib/validators/auth";
 import HTTP_STATUS_CODES from "../constants/status-code";
-import { json } from "body-parser";
 
 ////////////////////////////////////////////////
+
+interface IJWT {
+  id: string;
+  name: string;
+  email: string;
+}
 
 // Create jwt token
 const signToken = (user: User) => {
@@ -110,6 +115,8 @@ export const signUp = async (
   }
 };
 
+////////////////////////////
+
 // Login user with credentials
 export const login = async (
   req: express.Request,
@@ -158,4 +165,64 @@ export const logout = (req: express.Request, res: express.Response) => {
     status: "success",
     message: "Logged out successfully",
   });
+};
+
+//////////////////////////
+
+// Protect route
+export const protect = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    let token;
+
+    // Authenticate with Bearer token in headers
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+    // Authenticate with cookie
+    else if (req.cookies.auth_token) {
+      token = req.cookies.auth_token;
+    }
+
+    if (!token) {
+      return next({
+        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
+        error: "You are not logged in!",
+        isDisplay: true,
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as IJWT;
+
+    const currentUser = await db.user.findFirst({
+      where: {
+        id: decoded.id,
+      },
+    });
+
+    if (!currentUser) {
+      return next({
+        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
+        error: "The user belonging to this token is no longer exists.",
+        isDisplay: true,
+      });
+    }
+
+    // Store the user in the request as a session
+    req.user = currentUser;
+
+    next();
+  } catch (err) {
+    console.log(err);
+    return next({
+      error: err,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
 };
