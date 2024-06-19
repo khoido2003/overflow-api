@@ -11,6 +11,7 @@ import dotenv from "dotenv";
 import { db } from "./lib/db";
 import routesHandler from "./routers/index";
 import errorController from "./controllers/error-controller";
+import HTTP_STATUS_CODES from "./constants/status-code";
 
 const app = express();
 
@@ -59,10 +60,14 @@ app.use("/api/v1", routesHandler());
 app.all(
   "*",
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    next();
+    next({
+      error: "This route",
+      statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+    });
   }
 );
 
+// Handle global error in all routes
 app.use(errorController);
 
 process.on("SIGINT", async () => {
