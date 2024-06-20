@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,191 +8,159 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  name             String
-  username         String?  @unique
-  email            String   @unique
-  password         String
-  bio              String?
-  picture          String?
-  location         String?
-  portfolioWebsite String?
-  reputation       Int?     @default(0)
-  joinedAt         DateTime @default(now())
-
+  id                      String                        @id @default(uuid())
+  name                    String
+  username                String?                       @unique
+  email                   String                        @unique
+  password                String
+  bio                     String?
+  location                String?
+  portfolioWebsite        String?
+  reputation              Int?                          @default(0)
+  joinedAt                DateTime?                     @default(now())
+  emailVerified           DateTime
+  image                   String?
+  Account                 Account[]
+  userInteraction         Interaction[]                 @relation("userInteraction")
   questions               Question[]                    @relation("questionsAsk")
-  userUpvotes             UserUpvotesQuestion[]         @relation("upvotes")
+  Session                 Session[]
+  tagsFollow              TagFollower[]                 @relation("tagFollow")
+  answerQuestions         UserAnswerQuestion[]          @relation("answerQuestions")
+  answerQuestionDownvotes UserAnswerQuestionDownvotes[] @relation("answerQuestionsDownvotes")
+  answerQuestionUpvotes   UserAnswerQuestionUpvotes[]   @relation("answerQuestionsUpvotes")
   downvotes               UserDownVoteQuestion[]        @relation("downvotes")
   savedQuestions          UserSavedQuestion[]           @relation("savedQuestions")
-  answerQuestions         UserAnswerQuestion[]          @relation("answerQuestions")
-  tagsFollow              TagFollower[]                 @relation("tagFollow")
-  answerQuestionUpvotes   UserAnswerQuestionUpvotes[]   @relation("answerQuestionsUpvotes")
-  answerQuestionDownvotes UserAnswerQuestionDownvotes[] @relation("answerQuestionsDownvotes")
-  userInteraction         Interaction[]                 @relation("userInteraction")
+  userUpvotes             UserUpvotesQuestion[]         @relation("upvotes")
 }
 
 model Question {
-  id        String   @id @default(uuid())
-  title     String
-  content   String
-  views     Int      @default(0)
-  createdAt DateTime @default(now())
-
-  author   User?   @relation("questionsAsk", fields: [authorId], references: [id])
-  authorId String?
-
-  userUpvotes       UserUpvotesQuestion[]  @relation("upvotes")
+  id                String                 @id @default(uuid())
+  title             String
+  content           String
+  views             Int                    @default(0)
+  createdAt         DateTime               @default(now())
+  authorId          String?
+  interaction       Interaction[]          @relation("userInteraction")
+  author            User?                  @relation("questionsAsk", fields: [authorId], references: [id])
+  tagOnQuestion     TagOnQuestion[]        @relation("tagOnQuestion")
+  userAnswers       UserAnswerQuestion[]   @relation("answerQuestions")
   userDownvotes     UserDownVoteQuestion[] @relation("downvotes")
   userSavedQuestion UserSavedQuestion[]    @relation("savedQuestions")
-  userAnswers       UserAnswerQuestion[]   @relation("answerQuestions")
-
-  tagOnQuestion TagOnQuestion[] @relation("tagOnQuestion")
-  interaction   Interaction[]   @relation("userInteraction")
+  userUpvotes       UserUpvotesQuestion[]  @relation("upvotes")
 }
 
 model Tag {
-  id          String   @id @default(uuid())
-  desctiption String
-  createdAt   DateTime @default(now())
-
-  tagOnQuestion TagOnQuestion[] @relation("tagOnQuestion")
+  id            String          @id @default(uuid())
+  desctiption   String
+  createdAt     DateTime        @default(now())
   tagFollower   TagFollower[]   @relation("tagFollow")
+  tagOnQuestion TagOnQuestion[] @relation("tagOnQuestion")
 }
 
 model Interaction {
-  id     String @id @default(uuid())
-  action String
-
-  user   User?   @relation("userInteraction", fields: [userId], references: [id])
-  userId String?
-
-  userAnswerQuestion   UserAnswerQuestion? @relation("userInteraction", fields: [userAnswerQuestionId], references: [id])
+  id                   String              @id @default(uuid())
+  action               String
+  userId               String?
   userAnswerQuestionId String?
-
-  question   Question? @relation("userInteraction", fields: [questionId], references: [id])
-  questionId String?
+  questionId           String?
+  question             Question?           @relation("userInteraction", fields: [questionId], references: [id])
+  userAnswerQuestion   UserAnswerQuestion? @relation("userInteraction", fields: [userAnswerQuestionId], references: [id])
+  user                 User?               @relation("userInteraction", fields: [userId], references: [id])
 }
 
 model UserAnswerQuestion {
-  id        String   @id @default(uuid())
-  content   String
-  createdAt DateTime @default(now())
-
-  user   User?   @relation("answerQuestions", fields: [userId], references: [id])
-  userId String?
-
-  question   Question? @relation("answerQuestions", fields: [questionId], references: [id], onDelete: Cascade)
-  questionId String?
-
-  questionUpvotes   UserAnswerQuestionUpvotes[]   @relation("answerQuestionsUpvotes")
-  questionDownvotes UserAnswerQuestionDownvotes[] @relation("answerQuestionsDownvotes")
-
-  userAnswerQuestion Interaction[] @relation("userInteraction")
+  id                 String                        @id @default(uuid())
+  content            String
+  createdAt          DateTime                      @default(now())
+  userId             String?
+  questionId         String?
+  userAnswerQuestion Interaction[]                 @relation("userInteraction")
+  question           Question?                     @relation("answerQuestions", fields: [questionId], references: [id], onDelete: Cascade)
+  user               User?                         @relation("answerQuestions", fields: [userId], references: [id])
+  questionDownvotes  UserAnswerQuestionDownvotes[] @relation("answerQuestionsDownvotes")
+  questionUpvotes    UserAnswerQuestionUpvotes[]   @relation("answerQuestionsUpvotes")
 }
-
-///////////////////////////////////////////////////
 
 model TagFollower {
   id        String   @id @default(uuid())
   dateAdded DateTime @default(now())
-
-  tag   Tag?    @relation("tagFollow", fields: [tagId], references: [id])
-  tagId String?
-
-  user   User?   @relation("tagFollow", fields: [userId], references: [id])
-  userId String?
+  tagId     String?
+  userId    String?
+  tag       Tag?     @relation("tagFollow", fields: [tagId], references: [id])
+  user      User?    @relation("tagFollow", fields: [userId], references: [id])
 }
 
 model TagOnQuestion {
-  id String @id @default(cuid())
-
-  tag   Tag?    @relation("tagOnQuestion", fields: [tagId], references: [id])
-  tagId String?
-
-  question   Question? @relation("tagOnQuestion", fields: [questionId], references: [id])
+  id         String    @id @default(cuid())
+  tagId      String?
   questionId String?
+  question   Question? @relation("tagOnQuestion", fields: [questionId], references: [id])
+  tag        Tag?      @relation("tagOnQuestion", fields: [tagId], references: [id])
 }
 
 model UserUpvotesQuestion {
-  id        String   @id @default(uuid())
-  dateAdded DateTime @default(now())
-
-  user   User?   @relation("upvotes", fields: [userId], references: [id])
-  userId String?
-
-  question   Question? @relation("upvotes", fields: [questionId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  dateAdded  DateTime  @default(now())
+  userId     String?
   questionId String?
+  question   Question? @relation("upvotes", fields: [questionId], references: [id], onDelete: Cascade)
+  user       User?     @relation("upvotes", fields: [userId], references: [id])
 }
 
 model UserDownVoteQuestion {
-  id        String   @id @default(uuid())
-  dateAdded DateTime @default(now())
-
-  user   User?   @relation("downvotes", fields: [userId], references: [id])
-  userId String?
-
-  question   Question? @relation("downvotes", fields: [questionId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  dateAdded  DateTime  @default(now())
+  userId     String?
   questionId String?
+  question   Question? @relation("downvotes", fields: [questionId], references: [id], onDelete: Cascade)
+  user       User?     @relation("downvotes", fields: [userId], references: [id])
 }
 
 model UserSavedQuestion {
-  id        String   @id @default(uuid())
-  dateAdded DateTime @default(now())
-
-  question   Question? @relation("savedQuestions", fields: [questionId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  dateAdded  DateTime  @default(now())
   questionId String?
-
-  user   User?  @relation("savedQuestions", fields: [userId], references: [id])
-  userId String
+  userId     String
+  question   Question? @relation("savedQuestions", fields: [questionId], references: [id], onDelete: Cascade)
+  user       User      @relation("savedQuestions", fields: [userId], references: [id])
 }
 
 model UserAnswerQuestionUpvotes {
-  id String @id @default(uuid())
-
-  user   User?   @relation("answerQuestionsUpvotes", fields: [userId], references: [id])
-  userId String?
-
-  questionAnswered   UserAnswerQuestion? @relation("answerQuestionsUpvotes", fields: [questionAnsweredId], references: [id])
+  id                 String              @id @default(uuid())
+  userId             String?
   questionAnsweredId String?
+  questionAnswered   UserAnswerQuestion? @relation("answerQuestionsUpvotes", fields: [questionAnsweredId], references: [id])
+  user               User?               @relation("answerQuestionsUpvotes", fields: [userId], references: [id])
 }
 
 model UserAnswerQuestionDownvotes {
-  id String @id @default(uuid())
-
-  user   User?   @relation("answerQuestionsDownvotes", fields: [userId], references: [id])
-  userId String?
-
-  questionAnswered   UserAnswerQuestion? @relation("answerQuestionsDownvotes", fields: [questionAnsweredId], references: [id])
+  id                 String              @id @default(uuid())
+  userId             String?
   questionAnsweredId String?
+  questionAnswered   UserAnswerQuestion? @relation("answerQuestionsDownvotes", fields: [questionAnsweredId], references: [id])
+  user               User?               @relation("answerQuestionsDownvotes", fields: [userId], references: [id])
 }
 
-//  Examples
+model Account {
+  id                String  @id
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
-//       Set up a new Prisma project
-//       $ prisma init
-
-//       Generate artifacts (e.g. Prisma Client)
-//       $ prisma generate
-
-//       Browse your data
-//       $ prisma studio
-
-//       Create migrations from your Prisma schema, apply them to the database, generate artifacts (e.g. Prisma Client)
-//       $ prisma migrate dev
-
-//       Pull the schema from an existing database, updating the Prisma schema      $ prisma db pull
-
-//       Push the Prisma schema state to the database
-//       $ prisma db push
-
-//       Validate your Prisma schema
-//       $ prisma validate
-
-//       Format your Prisma schema
-//       $ prisma format
-
-//       Display Prisma version info
-//       $ prisma version
-
-//       Display Prisma debug info
-//       $ prisma debug
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
