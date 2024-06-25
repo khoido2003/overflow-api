@@ -12,13 +12,13 @@ model User {
   name                    String
   username                String?                       @unique
   email                   String                        @unique
-  password                String
+  password                String?
   bio                     String?
   location                String?
   portfolioWebsite        String?
   reputation              Int?                          @default(0)
   joinedAt                DateTime?                     @default(now())
-  emailVerified           DateTime
+  emailVerified           DateTime?
   image                   String?
   Account                 Account[]
   userInteraction         Interaction[]                 @relation("userInteraction")
@@ -50,11 +50,13 @@ model Question {
 }
 
 model Tag {
-  id            String          @id @default(uuid())
-  desctiption   String
-  createdAt     DateTime        @default(now())
-  tagFollower   TagFollower[]   @relation("tagFollow")
-  tagOnQuestion TagOnQuestion[] @relation("tagOnQuestion")
+  id              String           @id @default(uuid())
+  desctiption     String?
+  createdAt       DateTime         @default(now())
+  name            String           @unique
+  tagFollower     TagFollower[]    @relation("tagFollow")
+  TagInteractions TagInteraction[] @relation("tagInteraction")
+  tagOnQuestion   TagOnQuestion[]  @relation("tagOnQuestion")
 }
 
 model Interaction {
@@ -66,6 +68,15 @@ model Interaction {
   question             Question?           @relation("userInteraction", fields: [questionId], references: [id])
   userAnswerQuestion   UserAnswerQuestion? @relation("userInteraction", fields: [userAnswerQuestionId], references: [id])
   user                 User?               @relation("userInteraction", fields: [userId], references: [id])
+  TagInteractions      TagInteraction[]    @relation("tagInteraction")
+}
+
+model TagInteraction {
+  id            String      @id @default(cuid())
+  interactionId String
+  tagId         String?
+  interaction   Interaction @relation("tagInteraction", fields: [interactionId], references: [id])
+  Tag           Tag?        @relation("tagInteraction", fields: [tagId], references: [id])
 }
 
 model UserAnswerQuestion {
@@ -155,6 +166,8 @@ model Account {
   id_token          String?
   session_state     String?
   User              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
 model Session {
