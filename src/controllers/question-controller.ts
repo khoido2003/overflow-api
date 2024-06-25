@@ -3,6 +3,7 @@ import HTTP_STATUS_CODES from "../constants/status-code";
 import express from "express";
 import { db } from "../lib/db";
 
+// Create new question
 export const createQuestion = async (
   req: express.Request,
   res: express.Response,
@@ -81,3 +82,5 @@ export const createQuestion = async (
     next(error);
   }
 };
+
+////////////////////
