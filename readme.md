@@ -2,7 +2,7 @@
 
 =====================
 
-This repository contains the source code for [Project Name]. Below are instructions on how to clone the repository, work on the development branch, and submit changes via pull requests.
+This repository contains the source code for Overflow API. Below are instructions on how to clone the repository, work on the development branch, and submit changes via pull requests.
 
 ## Cloning the Repository
 
@@ -15,18 +15,25 @@ To get started with the project, follow these steps to clone the repository to y
 1. Open a terminal or command prompt.
 2. Use `git clone` command to clone the repository:
 
-   ```bash
-   git clone https://github.com/khoido2003/overflow-api.git
-   ```
+```bash
+  git clone https://github.com/khoido2003/overflow-api.git
+```
 
 ## Switching to the Development Branch
 
 Once the repository is cloned, switch to the development branch to start working on your changes:
 
-### Step 1: Navigate into the Project Directory
+### Step 0: Navigate into the Project Directory
 
 ```bash
   cd overflow-api
+```
+
+### Step 1: Fetch the new branch
+
+```bash
+  git fetch origin
+
 ```
 
 ### Step 2: Checkout the Development Branch
