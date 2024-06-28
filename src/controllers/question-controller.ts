@@ -145,6 +145,8 @@ export const getQuestions = async (
           },
         },
         author: true,
+        userUpvotes: true,
+        userAnswers: true,
       },
       skip: skipAmount,
       take: pageSize,
