@@ -13,6 +13,7 @@ const auth = (router: express.Router) => {
       res.status(200).json({
         status: "success",
         data: {
+          // @ts-ignore
           user: req.user,
         },
       });
