@@ -214,6 +214,7 @@ export const protect = async (
     }
 
     // Store the user in the request as a session
+    // @ts-ignore
     req.user = currentUser;
 
     next();
