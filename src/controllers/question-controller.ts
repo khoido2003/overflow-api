@@ -85,7 +85,7 @@ export const createQuestion = async (
   }
 };
 
-////////////////////
+//////////////////////////////////////////////////////////////
 
 // Get all questions by pagination
 export const getQuestions = async (
@@ -196,7 +196,7 @@ export const getQuestionByID = async (
   next: express.NextFunction
 ) => {
   try {
-    const id = req.params;
+    const { id } = req.params;
 
     // Retrieve the question with specific fields
     const question = await db.question.findFirst({
@@ -214,6 +214,7 @@ export const getQuestionByID = async (
           select: {
             id: true,
             name: true,
+            image: true,
           },
         },
         userUpvotes: {
@@ -224,6 +225,11 @@ export const getQuestionByID = async (
         userDownvotes: {
           select: {
             id: true,
+          },
+        },
+        userSavedQuestion: {
+          select: {
+            userId: true,
           },
         },
         userAnswers: {
@@ -270,7 +276,7 @@ export const getQuestionByID = async (
     }
 
     // Send the response with the optimized data
-    res.status(200).json({
+    res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
       data: question,
     });
