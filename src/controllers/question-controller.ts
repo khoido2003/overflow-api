@@ -76,16 +76,16 @@ export const createQuestion = async (
       return newQuestion;
     });
 
-    return res.status(HTTP_STATUS_CODES.OK).json({
+    return res.status(HTTP_STATUS_CODES.CREATED).json({
       message: "success",
       data: result,
     });
   } catch (error) {
-    next(error);
+    next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
   }
 };
 
-////////////////////
+//////////////////////////////////////////////////////////////
 
 // Get all questions by pagination
 export const getQuestions = async (
@@ -138,15 +138,39 @@ export const getQuestions = async (
             ],
           }
         : {},
-      include: {
-        tagOnQuestion: {
-          include: {
-            tag: true,
+
+      select: {
+        id: true,
+        title: true,
+        views: true,
+        createdAt: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
           },
         },
-        author: true,
-        userUpvotes: true,
-        userAnswers: true,
+        tagOnQuestion: {
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        userUpvotes: {
+          select: {
+            id: true,
+          },
+        },
+        userAnswers: {
+          select: {
+            id: true,
+          },
+        },
       },
       skip: skipAmount,
       take: pageSize,
@@ -159,6 +183,105 @@ export const getQuestions = async (
     });
   } catch (error) {
     console.log(error);
-    next(error);
+    next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};
+
+////////////////////////////////////////
+
+// Get question by ID
+export const getQuestionByID = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    // Retrieve the question with specific fields
+    const question = await db.question.findFirst({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        views: true,
+        createdAt: true,
+
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        userUpvotes: {
+          select: {
+            id: true,
+          },
+        },
+        userDownvotes: {
+          select: {
+            id: true,
+          },
+        },
+        userSavedQuestion: {
+          select: {
+            userId: true,
+          },
+        },
+        userAnswers: {
+          select: {
+            id: true,
+            content: true,
+            createdAt: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            questionDownvotes: {
+              select: {
+                id: true,
+              },
+            },
+            questionUpvotes: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+        tagOnQuestion: {
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!question) {
+      return next({
+        error: "Question not found",
+        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+      });
+    }
+
+    // Send the response with the optimized data
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: question,
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
   }
 };
