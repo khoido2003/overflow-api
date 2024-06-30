@@ -11,6 +11,23 @@ export const getUserById = async (
     const userId = req.params.id;
     const user = await db.user.findFirst({
       where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        image: true,
+        bio: true,
+        location: true,
+        portfolioWebsite: true,
+        reputation: true,
+        joinedAt: true,
+        _count: {
+          select: {
+            questions: true,
+            answerQuestions: true,
+          },
+        },
+      },
     });
 
     if (!user) {
