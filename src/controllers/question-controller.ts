@@ -76,7 +76,7 @@ export const createQuestion = async (
       return newQuestion;
     });
 
-    return res.status(HTTP_STATUS_CODES.OK).json({
+    return res.status(HTTP_STATUS_CODES.CREATED).json({
       message: "success",
       data: result,
     });
