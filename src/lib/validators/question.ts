@@ -7,6 +7,14 @@ export const AskQuestionValidator = z.object({
   author: z.string(),
 });
 
+export const UpvoteDownvoteQuestionValidator = z.object({
+  userId: z.string(),
+  questionId: z.string(),
+});
+
 ///////////////////////////////////////////////
 
 export type AskQuestionPayload = z.infer<typeof AskQuestionValidator>;
+export type UpvoteDownvoteQuestionPayload = z.infer<
+  typeof UpvoteDownvoteQuestionValidator
+>;

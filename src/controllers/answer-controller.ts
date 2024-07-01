@@ -57,6 +57,7 @@ export const GetAllAnswers = async (
         id: true,
         content: true,
         createdAt: true,
+        userId: true,
         user: {
           select: {
             name: true,
@@ -66,11 +67,13 @@ export const GetAllAnswers = async (
         questionDownvotes: {
           select: {
             id: true,
+            userId: true,
           },
         },
         questionUpvotes: {
           select: {
             id: true,
+            userId: true,
           },
         },
       },
