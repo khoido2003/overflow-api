@@ -21,12 +21,6 @@ export const getUserById = async (
         portfolioWebsite: true,
         reputation: true,
         joinedAt: true,
-        _count: {
-          select: {
-            questions: true,
-            answerQuestions: true,
-          },
-        },
       },
     });
 
@@ -40,6 +34,67 @@ export const getUserById = async (
     res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
       data: user,
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};
+
+export const getUserStats = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const userId = req.body.userId;
+
+    const totalQuestions = await db.question.count({
+      where: {
+        authorId: userId,
+      },
+    });
+
+    const totalAnswers = await db.userAnswerQuestion.count({
+      where: {
+        userId: userId,
+      },
+    });
+
+    const totalQuestionsUpvote = await db.userUpvotesQuestion.count({
+      where: {
+        question: {
+          authorId: userId,
+        },
+      },
+    });
+
+    const totalAnswersUpvote = await db.userAnswerQuestionUpvotes.count({
+      where: {
+        questionAnswered: {
+          userId: userId,
+        },
+      },
+    });
+
+    const totalViews = await db.question.aggregate({
+      _sum: {
+        views: true,
+      },
+      where: {
+        authorId: userId,
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: {
+        totalQuestions,
+        totalAnswers,
+        totalQuestionsUpvote,
+        totalAnswersUpvote,
+        totalViews: totalViews._sum.views,
+      },
     });
   } catch (error) {
     console.log(error);
