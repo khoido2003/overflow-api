@@ -1,6 +1,7 @@
 import {
   AnswerQuestionValidator,
   GetAnswersQuestionValidator,
+  UpvoteDownvoteAnswerValidator,
 } from "../lib/validators/answer";
 import HTTP_STATUS_CODES from "../constants/status-code";
 import express from "express";
@@ -82,6 +83,124 @@ export const GetAllAnswers = async (
     res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
       data: answers,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+/////////////////////////////////////////////////
+
+// Upvotes/DownVotes Answer
+
+export const upvoteAnswer = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { questionAnsweredId, userId } = UpvoteDownvoteAnswerValidator.parse(
+      req.body
+    );
+
+    // Start the transaction
+    await db.$transaction(async (tx) => {
+      const existingUpvote = await tx.userAnswerQuestionUpvotes.findFirst({
+        where: {
+          questionAnsweredId,
+          userId,
+        },
+      });
+
+      if (existingUpvote) {
+        // Delete the existing upvote
+        await tx.userAnswerQuestionUpvotes.delete({
+          where: { id: existingUpvote.id },
+        });
+      } else {
+        const existingDownvotes =
+          await tx.userAnswerQuestionDownvotes.findFirst({
+            where: {
+              questionAnsweredId,
+              userId,
+            },
+          });
+
+        // Remove the downvotes before upvote the answer
+        if (existingDownvotes) {
+          await tx.userAnswerQuestionDownvotes.delete({
+            where: { id: existingDownvotes.id },
+          });
+        }
+
+        // Actual upvote the answer
+        await tx.userAnswerQuestionUpvotes.create({
+          data: { questionAnsweredId, userId },
+        });
+      }
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Upvote answer toggled successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+// Downvote an answer
+export const downvoteAnswer = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { questionAnsweredId, userId } = UpvoteDownvoteAnswerValidator.parse(
+      req.body
+    );
+
+    // Start the transaction
+    await db.$transaction(async (tx) => {
+      const existingDownvote = await tx.userAnswerQuestionDownvotes.findFirst({
+        where: {
+          questionAnsweredId,
+          userId,
+        },
+      });
+
+      if (existingDownvote) {
+        await tx.userAnswerQuestionDownvotes.delete({
+          where: { id: existingDownvote.id },
+        });
+      } else {
+        const existingUpvotes = await tx.userAnswerQuestionUpvotes.findFirst({
+          where: {
+            questionAnsweredId,
+            userId,
+          },
+        });
+
+        if (existingUpvotes) {
+          await tx.userAnswerQuestionUpvotes.delete({
+            where: { id: existingUpvotes.id },
+          });
+        }
+        await tx.userAnswerQuestionDownvotes.create({
+          data: { questionAnsweredId, userId },
+        });
+      }
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Downvote answer toggled successfully",
     });
   } catch (error) {
     console.log(error);

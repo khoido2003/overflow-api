@@ -338,7 +338,9 @@ export const upvoteQuestion = async (
       }
     });
 
-    res.status(200).json({ message: "Upvote toggled successfully" });
+    res
+      .status(HTTP_STATUS_CODES.OK)
+      .json({ message: "Upvote toggled successfully" });
   } catch (error) {
     console.log(error);
     next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
@@ -387,7 +389,9 @@ export const downvoteQuestion = async (
       }
     });
 
-    res.status(200).json({ message: "Downvote toggled successfully" });
+    res
+      .status(HTTP_STATUS_CODES.OK)
+      .json({ message: "Downvote toggled successfully" });
   } catch (error) {
     console.log(error);
     next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
