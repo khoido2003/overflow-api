@@ -1,6 +1,9 @@
 import express from "express";
 import { db } from "../lib/db";
-import { AskQuestionValidator } from "../lib/validators/question";
+import {
+  AskQuestionValidator,
+  UpvoteDownvoteQuestionValidator,
+} from "../lib/validators/question";
 import HTTP_STATUS_CODES from "../constants/status-code";
 import { GetQuestionsQuery } from "types/shared";
 
@@ -209,6 +212,7 @@ export const getQuestionByID = async (
         content: true,
         views: true,
         createdAt: true,
+        authorId: true,
 
         author: {
           select: {
@@ -220,11 +224,13 @@ export const getQuestionByID = async (
         userUpvotes: {
           select: {
             id: true,
+            userId: true,
           },
         },
         userDownvotes: {
           select: {
             id: true,
+            userId: true,
           },
         },
         userSavedQuestion: {
@@ -280,6 +286,112 @@ export const getQuestionByID = async (
       message: "Success",
       data: question,
     });
+  } catch (error) {
+    console.log(error);
+    next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};
+
+//////////////////////////////////////////////
+
+// Upvotes / Downvotesa question
+
+// Upvote a question
+export const upvoteQuestion = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { questionId, userId } = UpvoteDownvoteQuestionValidator.parse(
+      req.body
+    );
+
+    await db.$transaction(async (tx) => {
+      // Check if the user has already upvoted the question
+      const existingUpvote = await tx.userUpvotesQuestion.findFirst({
+        where: { questionId, userId },
+      });
+
+      if (existingUpvote) {
+        // If the user has already upvoted, remove the upvote
+        await tx.userUpvotesQuestion.delete({
+          where: { id: existingUpvote.id },
+        });
+      } else {
+        // Check if the user has downvoted the question
+        const existingDownvote = await tx.userDownVoteQuestion.findFirst({
+          where: { questionId, userId },
+        });
+
+        if (existingDownvote) {
+          // If the user has downvoted, remove the downvote
+          await tx.userDownVoteQuestion.delete({
+            where: { id: existingDownvote.id },
+          });
+        }
+
+        // Add the upvote
+        await tx.userUpvotesQuestion.create({
+          data: { questionId, userId },
+        });
+      }
+    });
+
+    res
+      .status(HTTP_STATUS_CODES.OK)
+      .json({ message: "Upvote toggled successfully" });
+  } catch (error) {
+    console.log(error);
+    next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};
+
+// Downvote a question
+export const downvoteQuestion = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { questionId, userId } = UpvoteDownvoteQuestionValidator.parse(
+      req.body
+    );
+
+    await db.$transaction(async (tx) => {
+      // Check if the user has already downvoted the question
+      const existingDownvote = await tx.userDownVoteQuestion.findFirst({
+        where: { questionId, userId },
+      });
+
+      if (existingDownvote) {
+        // If the user has already downvoted, remove the downvote
+        await tx.userDownVoteQuestion.delete({
+          where: { id: existingDownvote.id },
+        });
+      } else {
+        // Check if the user has upvoted the question
+        const existingUpvote = await tx.userUpvotesQuestion.findFirst({
+          where: { questionId, userId },
+        });
+
+        if (existingUpvote) {
+          // If the user has upvoted, remove the upvote
+          await tx.userUpvotesQuestion.delete({
+            where: { id: existingUpvote.id },
+          });
+        }
+
+        // Add the downvote
+        await tx.userDownVoteQuestion.create({
+          data: { questionId, userId },
+        });
+      }
+    });
+
+    res
+      .status(HTTP_STATUS_CODES.OK)
+      .json({ message: "Downvote toggled successfully" });
   } catch (error) {
     console.log(error);
     next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });

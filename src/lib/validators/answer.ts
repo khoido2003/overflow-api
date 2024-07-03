@@ -12,9 +12,17 @@ export const GetAnswersQuestionValidator = z.object({
   questionId: z.string(),
 });
 
+export const UpvoteDownvoteAnswerValidator = z.object({
+  userId: z.string(),
+  questionAnsweredId: z.string(),
+});
+
 ////////////////////////////////////////////////////////
 
 // Types
 
 export type AnswerQuestionPayload = z.infer<typeof AnswerQuestionValidator>;
 export type GetAnswerQuestionPayload = z.infer<typeof AnswerQuestionValidator>;
+export type UpvoteDownvoteAnswerPayload = z.infer<
+  typeof UpvoteDownvoteAnswerValidator
+>;

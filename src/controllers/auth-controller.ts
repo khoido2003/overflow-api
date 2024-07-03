@@ -51,8 +51,8 @@ const createSendToken = (
 
     // In production only allow cookies be sent through https but in development also allow cookies to be sent through http
     secure: process.env.NODE_ENV === "production",
-
     httpOnly: true,
+    sameSite: "lax" as "lax",
   };
 
   // Send the cookies
