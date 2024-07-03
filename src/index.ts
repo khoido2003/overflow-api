@@ -21,7 +21,7 @@ dotenv.config();
 // Set up cors to allow requests and responses from other sites
 app.use(
   cors({
-    origin: "*",
+    origin: process.env.CORS_ORIGIN,
     credentials: true,
   })
 );
