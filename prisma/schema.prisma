@@ -31,6 +31,9 @@ model User {
   downvotes               UserDownVoteQuestion[]        @relation("downvotes")
   savedQuestions          UserSavedQuestion[]           @relation("savedQuestions")
   userUpvotes             UserUpvotesQuestion[]         @relation("upvotes")
+
+  @@index([email])
+  @@index([name])
 }
 
 model Question {
@@ -47,6 +50,10 @@ model Question {
   userDownvotes     UserDownVoteQuestion[] @relation("downvotes")
   userSavedQuestion UserSavedQuestion[]    @relation("savedQuestions")
   userUpvotes       UserUpvotesQuestion[]  @relation("upvotes")
+
+  @@index([content])
+  @@index([createdAt], type: Brin)
+  @@index([title])
 }
 
 model Tag {
@@ -57,6 +64,8 @@ model Tag {
   tagFollower     TagFollower[]    @relation("tagFollow")
   TagInteractions TagInteraction[] @relation("tagInteraction")
   tagOnQuestion   TagOnQuestion[]  @relation("tagOnQuestion")
+
+  @@index([name])
 }
 
 model Interaction {
@@ -90,6 +99,9 @@ model UserAnswerQuestion {
   user               User?                         @relation("answerQuestions", fields: [userId], references: [id])
   questionDownvotes  UserAnswerQuestionDownvotes[] @relation("answerQuestionsDownvotes")
   questionUpvotes    UserAnswerQuestionUpvotes[]   @relation("answerQuestionsUpvotes")
+
+  @@index([content])
+  @@index([createdAt], type: Brin)
 }
 
 model TagFollower {
@@ -177,65 +189,3 @@ model Session {
   expires      DateTime
   User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-//     Prisma is a modern DB toolkit to query, migrate and model your database (https://prisma.io)
-
-//     Usage
-
-//       $ prisma [command]
-
-//     Commands
-
-//                 init   Set up Prisma for your app
-//             generate   Generate artifacts (e.g. Prisma Client)
-//                   db   Manage your database schema and lifecycle        
-//              migrate   Migrate your database
-//               studio   Browse your data with Prisma Studio
-//             validate   Validate your Prisma schema
-//               format   Format your Prisma schema
-//              version   Displays Prisma version info
-//                debug   Displays Prisma debug info
-
-//     Flags
-
-//          --preview-feature   Run Preview Prisma commands
-//          --help, -h          Show additional information about a command
-// ┌──────────────────────────────────────────────────────────────────────────────────────┐
-// │  Optimize performance through connection pooling and caching with Prisma Accelerate  │
-// │  and capture real-time events from your database with Prisma Pulse.   
-//                │
-// │  Learn more at https://pris.ly/cli/pdp
-//                │
-// └──────────────────────────────────────────────────────────────────────────────────────┘
-
-//     Examples
-
-//       Set up a new Prisma project
-//       $ prisma init
-
-//       Generate artifacts (e.g. Prisma Client)
-//       $ prisma generate
-
-//       Browse your data
-//       $ prisma studio
-
-//       Create migrations from your Prisma schema, apply them to the database, generate artifacts (e.g. Prisma Client)
-//       $ prisma migrate dev
-
-//       Pull the schema from an existing database, updating the Prisma schema
-//       $ prisma db pull
-
-//       Push the Prisma schema state to the database
-//       $ prisma db push
-
-//       Validate your Prisma schema
-//       $ prisma validate
-
-//       Format your Prisma schema
-//       $ prisma format
-
-//       Display Prisma version info
-//       $ prisma version
-
-//       Display Prisma debug info
-//       $ prisma debug
