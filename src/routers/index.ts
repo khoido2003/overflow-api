@@ -3,6 +3,7 @@ import auth from "./auth";
 import { question } from "./question";
 import { user } from "./user";
 import { answer } from "./answer";
+import { tag } from "./tag";
 
 // Init the router
 const router = express.Router();
@@ -19,6 +20,8 @@ const routesHandler = (): express.Router => {
 
   // Answer questions
   answer(router);
+
+  tag(router);
 
   return router;
 };
