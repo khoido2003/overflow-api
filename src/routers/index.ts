@@ -4,7 +4,7 @@ import { question } from "./question";
 import { user } from "./user";
 import { answer } from "./answer";
 import { tag } from "./tag";
-import { globalSearch } from "./global-search";
+// import { globalSearch } from "./global-search";
 
 // Init the router
 const router = express.Router();
@@ -24,8 +24,8 @@ const routesHandler = (): express.Router => {
 
   tag(router);
 
-  // Global search routes
-  globalSearch(router);
+  // // Global search routes
+  // globalSearch(router);
 
   return router;
 };
