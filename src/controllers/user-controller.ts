@@ -30,6 +30,9 @@ export const getAllUsers = async (
       case "reputation":
         sortOption = { reputation: "desc" };
         break;
+      case "name":
+        sortOption = [{ name: "asc" }, { username: "asc" }];
+        break;
       default:
         break;
     }
@@ -46,12 +49,6 @@ export const getAllUsers = async (
               },
               {
                 username: {
-                  contains: searchQuery,
-                  mode: "insensitive",
-                },
-              },
-              {
-                email: {
                   contains: searchQuery,
                   mode: "insensitive",
                 },
