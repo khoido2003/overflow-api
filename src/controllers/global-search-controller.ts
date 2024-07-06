@@ -184,7 +184,7 @@ export const globalSearchController = async (
         },
         tag: {
           model: db.tag,
-          searchField: "tag",
+          searchField: "name",
         },
       }[type.toLocaleLowerCase()]; // Take out the field
 
