@@ -61,7 +61,7 @@ app.all(
   "*",
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
     next({
-      error: "This route",
+      error: "This route is not defined!",
       statusCode: HTTP_STATUS_CODES.NOT_FOUND,
     });
   }
