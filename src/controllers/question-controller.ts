@@ -113,10 +113,15 @@ export const getQuestions = async (
         sortOption = { createdAt: "desc" };
         break;
       case "frequent":
-        sortOption = { viewCount: "desc" };
+        sortOption = { views: "desc" };
         break;
       case "unanswered":
-        sortOption = { answerCount: "asc" };
+        sortOption = {
+          userAnswers: {
+            _count: "asc",
+          },
+          createdAt: "asc",
+        };
         break;
       default:
         break;
