@@ -120,7 +120,6 @@ export const getQuestions = async (
           userAnswers: {
             _count: "asc",
           },
-          createdAt: "asc",
         };
         break;
       default:
@@ -181,13 +180,19 @@ export const getQuestions = async (
         },
       },
       skip: skipAmount,
-      take: pageSize,
+      take: +pageSize,
       orderBy: sortOption,
+    });
+
+    // Count the total number of questions in the db
+    const questionsCount = await db.question.count({
+      where: {},
     });
 
     return res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
       data: questions,
+      results: questionsCount,
     });
   } catch (error) {
     console.log(error);
