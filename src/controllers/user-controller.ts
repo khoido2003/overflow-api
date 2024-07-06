@@ -184,3 +184,96 @@ export const getUserStats = async (
     next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
   }
 };
+
+// Only filter and pagination
+export const getUserQuestions = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const userId = req.params.userId;
+
+    const { filter, page = 1, pageSize = 5 } = req.query as GetQuestionsQuery;
+    const skipAmount = (page - 1) * pageSize;
+    let sortOption = {};
+
+    switch (filter) {
+      case "newest":
+        sortOption = { createdAt: "desc" };
+        break;
+      case "oldest":
+        sortOption = { createdAt: "asc" };
+        break;
+      case "most_views":
+        sortOption = { views: "desc" };
+        break;
+      default:
+        break;
+    }
+
+    const questions = await db.question.findMany({
+      where: {
+        authorId: userId,
+      },
+      select: {
+        id: true,
+        title: true,
+        views: true,
+        createdAt: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        tagOnQuestion: {
+          select: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        userUpvotes: {
+          select: {
+            id: true,
+          },
+        },
+        userAnswers: {
+          select: {
+            id: true,
+          },
+        },
+      },
+      skip: skipAmount,
+      take: +pageSize,
+      orderBy: sortOption,
+    });
+
+    const questionCount = await db.question.count({
+      where: {
+        authorId: userId,
+      },
+    });
+
+    if (!questions || questions.length === 0) {
+      return next({
+        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+        error: "Questions not found",
+      });
+    }
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      results: questionCount,
+      data: questions,
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};

@@ -51,7 +51,7 @@ app.use(bodyParser.json());
 const server = http.createServer(app);
 
 server.listen(process.env.PORT || 8006, () => {
-  console.log(`Server is running on port ${process.env.SERVER_PORT || 8006}`);
+  console.log(`Server is running on port ${process.env.PORT || 8006}`);
 });
 
 // Handle routes in server
@@ -61,7 +61,7 @@ app.all(
   "*",
   (req: express.Request, res: express.Response, next: express.NextFunction) => {
     next({
-      error: "This route",
+      error: "This route is not defined!",
       statusCode: HTTP_STATUS_CODES.NOT_FOUND,
     });
   }

@@ -113,10 +113,14 @@ export const getQuestions = async (
         sortOption = { createdAt: "desc" };
         break;
       case "frequent":
-        sortOption = { viewCount: "desc" };
+        sortOption = { views: "desc" };
         break;
       case "unanswered":
-        sortOption = { answerCount: "asc" };
+        sortOption = {
+          userAnswers: {
+            _count: "asc",
+          },
+        };
         break;
       default:
         break;
@@ -176,13 +180,19 @@ export const getQuestions = async (
         },
       },
       skip: skipAmount,
-      take: pageSize,
+      take: +pageSize,
       orderBy: sortOption,
+    });
+
+    // Count the total number of questions in the db
+    const questionsCount = await db.question.count({
+      where: {},
     });
 
     return res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
       data: questions,
+      results: questionsCount,
     });
   } catch (error) {
     console.log(error);
@@ -395,5 +405,39 @@ export const downvoteQuestion = async (
   } catch (error) {
     console.log(error);
     next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};
+
+///////////////////////////////////////
+
+// Update views of the questions
+export const updateQuestionView = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const answer = await db.question.update({
+      where: {
+        id,
+      },
+      data: {
+        views: {
+          increment: 1,
+        },
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "success",
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
   }
 };

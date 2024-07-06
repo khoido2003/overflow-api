@@ -2,7 +2,6 @@ import HTTP_STATUS_CODES from "../constants/status-code";
 import express from "express";
 import { db } from "../lib/db";
 import { GetQuestionsQuery } from "types/shared";
-import { question } from "routers/question";
 
 export const getAllTags = async (
   req: express.Request,
@@ -13,7 +12,7 @@ export const getAllTags = async (
     const {
       filter,
       page = 1,
-      pageSize = 12,
+      pageSize = 8,
       searchQuery,
     } = req.query as GetQuestionsQuery;
 
@@ -21,7 +20,6 @@ export const getAllTags = async (
 
     let sortOption = {};
 
-    // TODO: IMPLEMNT popular tag
     switch (filter) {
       case "popular_tag":
         sortOption = {
@@ -93,10 +91,33 @@ export const getQuestionByTagId = async (
 ) => {
   try {
     const { id } = req.params;
+    const {
+      page = 1,
+      pageSize = 5,
+      searchQuery,
+    } = req.query as GetQuestionsQuery;
+    const skipAmount = (page - 1) * pageSize;
+
+    let searchOption: any = {};
+
+    if (searchQuery)
+      searchOption.OR = [
+        {
+          title: {
+            contains: searchQuery,
+            mode: "insensitive",
+          },
+        },
+        {
+          content: {
+            contains: searchQuery,
+            mode: "insensitive",
+          },
+        },
+      ];
+
     const tag = await db.tag.findUnique({
-      where: {
-        id,
-      },
+      where: { id: id },
       select: {
         id: true,
         name: true,
@@ -112,7 +133,14 @@ export const getQuestionByTagId = async (
 
     const questions = await db.tagOnQuestion.findMany({
       where: {
-        tagId: id,
+        AND: [
+          {
+            tagId: id,
+          },
+          {
+            question: searchOption,
+          },
+        ],
       },
       select: {
         question: {
@@ -151,6 +179,8 @@ export const getQuestionByTagId = async (
           },
         },
       },
+      skip: skipAmount,
+      take: pageSize,
     });
 
     if (!questions) {
@@ -164,21 +194,10 @@ export const getQuestionByTagId = async (
       message: "Success",
       data: {
         tag,
+        questionsCount: questions.length,
         questions,
       },
     });
-  } catch (error) {
-    console.log(error);
-    next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
-  }
-};
-
-export const getPopularTag = (
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction
-) => {
-  try {
   } catch (error) {
     console.log(error);
     next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
