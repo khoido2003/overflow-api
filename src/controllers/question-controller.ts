@@ -397,3 +397,37 @@ export const downvoteQuestion = async (
     next({ error: error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
   }
 };
+
+///////////////////////////////////////
+
+// Update views of the questions
+export const updateQuestionView = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const answer = await db.question.update({
+      where: {
+        id,
+      },
+      data: {
+        views: {
+          increment: 1,
+        },
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "success",
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
