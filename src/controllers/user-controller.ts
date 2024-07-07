@@ -12,7 +12,7 @@ export const getAllUsers = async (
     const {
       filter,
       page = 1,
-      pageSize = 12,
+      pageSize = 8,
       searchQuery,
     } = req.query as GetQuestionsQuery;
 
@@ -34,28 +34,33 @@ export const getAllUsers = async (
         sortOption = [{ name: "asc" }, { username: "asc" }];
         break;
       default:
+        sortOption = { joinedAt: "desc" };
         break;
     }
 
+    let searchOptions = {};
+
+    if (searchQuery) {
+      searchOptions = {
+        OR: [
+          {
+            name: {
+              contains: searchQuery,
+              mode: "insensitive",
+            },
+          },
+          {
+            username: {
+              contains: searchQuery,
+              mode: "insensitive",
+            },
+          },
+        ],
+      };
+    }
+
     const users = await db.user.findMany({
-      where: searchQuery
-        ? {
-            OR: [
-              {
-                name: {
-                  contains: searchQuery,
-                  mode: "insensitive",
-                },
-              },
-              {
-                username: {
-                  contains: searchQuery,
-                  mode: "insensitive",
-                },
-              },
-            ],
-          }
-        : {},
+      where: searchOptions,
       select: {
         id: true,
         name: true,
@@ -63,20 +68,17 @@ export const getAllUsers = async (
         image: true,
       },
       skip: skipAmount,
-      take: pageSize,
+      take: +pageSize,
       orderBy: sortOption,
     });
 
-    if (!users) {
-      return next({
-        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
-        error: "Users not found",
-      });
-    }
+    const userCount = await db.user.count({
+      where: searchOptions,
+    });
 
     res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
-      results: users.length,
+      results: userCount,
       data: users,
     });
   } catch (error) {

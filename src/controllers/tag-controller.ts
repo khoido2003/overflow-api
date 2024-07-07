@@ -38,18 +38,23 @@ export const getAllTags = async (
         sortOption = { name: "asc" };
         break;
       default:
+        sortOption = { createdAt: "desc" };
         break;
     }
 
+    let searchOptions = {};
+
+    if (searchQuery) {
+      searchOptions = {
+        name: {
+          contains: searchQuery,
+          mode: "insensitive",
+        },
+      };
+    }
+
     const tags = await db.tag.findMany({
-      where: searchQuery
-        ? {
-            name: {
-              contains: searchQuery,
-              mode: "insensitive",
-            },
-          }
-        : {},
+      where: searchOptions,
       select: {
         id: true,
         name: true,
@@ -62,20 +67,17 @@ export const getAllTags = async (
         },
       },
       skip: skipAmount,
-      take: pageSize,
+      take: +pageSize,
       orderBy: sortOption,
     });
 
-    if (!tags) {
-      return next({
-        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
-        error: "Tags not found",
-      });
-    }
+    const tagsCount = await db.tag.count({
+      where: searchOptions,
+    });
 
     res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
-      result: tags.length,
+      results: tagsCount,
       data: tags,
     });
   } catch (error) {
@@ -84,6 +86,7 @@ export const getAllTags = async (
   }
 };
 
+// TODO: FIX THIS
 export const getQuestionByTagId = async (
   req: express.Request,
   res: express.Response,
