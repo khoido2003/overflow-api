@@ -441,3 +441,49 @@ export const updateQuestionView = async (
     });
   }
 };
+
+////////////////////////////////////////////
+
+// Get top 5 most viewed and upvoted questions
+export const getTop5Questions = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const questions = await db.question.findMany({
+      select: {
+        id: true,
+        title: true,
+        views: true,
+        _count: {
+          select: {
+            userUpvotes: true,
+          },
+        },
+      },
+      take: 5,
+      orderBy: [
+        {
+          views: "desc",
+        },
+        {
+          userUpvotes: {
+            _count: "desc",
+          },
+        },
+      ],
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: questions,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};

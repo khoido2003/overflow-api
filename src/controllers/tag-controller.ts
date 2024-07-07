@@ -203,3 +203,37 @@ export const getQuestionByTagId = async (
     next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
   }
 };
+
+export const GetTop5Tags = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const tags = await db.tag.findMany({
+      select: {
+        id: true,
+        name: true,
+        _count: {
+          select: {
+            tagOnQuestion: true,
+          },
+        },
+      },
+
+      orderBy: [{ tagOnQuestion: { _count: "desc" } }],
+      take: 5,
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: tags,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
