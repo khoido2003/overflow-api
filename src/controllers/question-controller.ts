@@ -126,25 +126,29 @@ export const getQuestions = async (
         break;
     }
 
+    let searchOption = {};
+
+    if (searchQuery) {
+      searchOption = {
+        OR: [
+          {
+            title: {
+              contains: searchQuery,
+              mode: "insensitive",
+            },
+          },
+          {
+            content: {
+              contains: searchQuery,
+              mode: "insensitive",
+            },
+          },
+        ],
+      };
+    }
+
     const questions = await db.question.findMany({
-      where: searchQuery
-        ? {
-            OR: [
-              {
-                title: {
-                  contains: searchQuery,
-                  mode: "insensitive",
-                },
-              },
-              {
-                content: {
-                  contains: searchQuery,
-                  mode: "insensitive",
-                },
-              },
-            ],
-          }
-        : {},
+      where: searchOption,
 
       select: {
         id: true,
@@ -186,7 +190,7 @@ export const getQuestions = async (
 
     // Count the total number of questions in the db
     const questionsCount = await db.question.count({
-      where: {},
+      where: searchOption,
     });
 
     return res.status(HTTP_STATUS_CODES.OK).json({
