@@ -50,6 +50,41 @@ export const GetAllAnswers = async (
   try {
     const { questionId } = GetAnswersQuestionValidator.parse(req.body);
 
+    const { filter } = req.query;
+
+    let sortOptions = {};
+
+    switch (filter) {
+      case "highest-upvotes":
+        sortOptions = {
+          questionUpvotes: {
+            _count: "desc",
+          },
+        };
+        break;
+      case "lowest-upvotes":
+        sortOptions = {
+          questionDownvotes: {
+            _count: "desc",
+          },
+        };
+        break;
+
+      case "most-recent":
+        sortOptions = {
+          createdAt: "desc",
+        };
+        break;
+
+      case "oldest":
+        sortOptions = {
+          createdAt: "asc",
+        };
+        break;
+      default:
+        break;
+    }
+
     const answers = await db.userAnswerQuestion.findMany({
       where: {
         questionId,
@@ -78,6 +113,7 @@ export const GetAllAnswers = async (
           },
         },
       },
+      orderBy: sortOptions,
     });
 
     res.status(HTTP_STATUS_CODES.OK).json({

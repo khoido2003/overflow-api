@@ -4,12 +4,15 @@ import {
   downvoteQuestion,
   getQuestionByID,
   getQuestions,
+  getTop5Questions,
   updateQuestionView,
   upvoteQuestion,
 } from "../controllers/question-controller";
 import express from "express";
 
 export const question = (router: express.Router) => {
+  router.route("/top-5-questions").get(getTop5Questions);
+
   router.route("/questions").post(protect, createQuestion).get(getQuestions);
 
   router.route("/questions/upvotes").post(protect, upvoteQuestion);
