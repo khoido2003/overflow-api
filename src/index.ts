@@ -5,6 +5,9 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import cors from "cors";
 import dotenv from "dotenv";
+
+import multer from "multer";
+import sharp from "sharp";
 // import xssClean from "xss-clean";
 // import rateLimit from "express-rate-limit";
 
@@ -12,6 +15,9 @@ import { db } from "./lib/db";
 import routesHandler from "./routers/index";
 import errorController from "./controllers/error-controller";
 import HTTP_STATUS_CODES from "./constants/status-code";
+
+import { uploadRouter } from "./uploadthing/uploadthing";
+import { createRouteHandler } from "uploadthing/express";
 
 const app = express();
 
@@ -35,6 +41,10 @@ app.use(cookieParser());
 // Allow read the body
 app.use(bodyParser.json());
 
+// Handle upload file
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 // // Data sanitization agains xss
 // app.use(xssClean);
 
@@ -53,6 +63,16 @@ const server = http.createServer(app);
 server.listen(process.env.PORT || 8006, () => {
   console.log(`Server is running on port ${process.env.PORT || 8006}`);
 });
+
+// Route handle upload image: Uploadthing
+app.use(
+  "/api/uploadthing",
+  upload.single("file"),
+  createRouteHandler({
+    router: uploadRouter,
+    config: {},
+  })
+);
 
 // Handle routes in server
 app.use("/api/v1", routesHandler());
