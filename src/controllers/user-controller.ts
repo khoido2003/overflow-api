@@ -2,6 +2,7 @@ import HTTP_STATUS_CODES from "../constants/status-code";
 import express from "express";
 import { db } from "../lib/db";
 import { GetQuestionsQuery } from "types/shared";
+import { UpdateProfileValidator } from "../lib/validators/user";
 
 export const getAllUsers = async (
   req: express.Request,
@@ -59,6 +60,8 @@ export const getAllUsers = async (
       };
     }
 
+    //////////////////////////////////////////////////////////////////////
+
     const users = await db.user.findMany({
       where: searchOptions,
       select: {
@@ -99,6 +102,7 @@ export const getUserById = async (
       select: {
         id: true,
         name: true,
+        email: true,
         username: true,
         image: true,
         bio: true,
@@ -125,6 +129,8 @@ export const getUserById = async (
     next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
   }
 };
+
+///////////////////////////////////////////////////////////////
 
 export const getUserStats = async (
   req: express.Request,
@@ -186,6 +192,8 @@ export const getUserStats = async (
     next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
   }
 };
+
+//////////////////////////////////////////////////////////////
 
 // Only filter and pagination
 export const getUserQuestions = async (
@@ -277,5 +285,44 @@ export const getUserQuestions = async (
   } catch (error) {
     console.log(error);
     next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};
+
+//////////////////////////////////////////////////////////
+
+// Update user profile
+export const updateUserProfile = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { name, bio, email, location, portfolioWebsite, username } =
+      UpdateProfileValidator.parse(req.body);
+
+    const user = await db.user.update({
+      where: {
+        id: req.query.userId as string,
+      },
+      data: {
+        name: name,
+        email: email,
+        username: username,
+        bio: bio,
+        location: location,
+        portfolioWebsite: portfolioWebsite,
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: user,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
   }
 };

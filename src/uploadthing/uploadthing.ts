@@ -13,6 +13,7 @@ interface IJWT {
 
 const f = createUploadthing();
 
+// Handle change user images
 export const uploadRouter = {
   imageUploader: f({
     image: {
