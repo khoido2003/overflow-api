@@ -12,9 +12,15 @@ export const UpvoteDownvoteQuestionValidator = z.object({
   questionId: z.string(),
 });
 
+export const BookmarkQuestionValidator = z.object({
+  userId: z.string(),
+  questionId: z.string(),
+});
+
 ///////////////////////////////////////////////
 
 export type AskQuestionPayload = z.infer<typeof AskQuestionValidator>;
 export type UpvoteDownvoteQuestionPayload = z.infer<
   typeof UpvoteDownvoteQuestionValidator
 >;
+export type BookmarkQuestionPayload = z.infer<typeof BookmarkQuestionValidator>;

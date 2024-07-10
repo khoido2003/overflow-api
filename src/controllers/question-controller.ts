@@ -2,10 +2,13 @@ import express from "express";
 import { db } from "../lib/db";
 import {
   AskQuestionValidator,
+  BookmarkQuestionValidator,
   UpvoteDownvoteQuestionValidator,
 } from "../lib/validators/question";
 import HTTP_STATUS_CODES from "../constants/status-code";
-import { GetQuestionsQuery } from "types/shared";
+import { GetQuestionsQuery, RecommendedParams } from "types/shared";
+import { Prisma, User } from "@prisma/client";
+import { user } from "routers/user";
 
 // Create new question
 export const createQuestion = async (
@@ -62,6 +65,25 @@ export const createQuestion = async (
 
       await tx.tagOnQuestion.createMany({
         data: tagAssociations,
+      });
+
+      // Create an interaction record for recommendation filter when get all questions
+
+      const newInteraction = await tx.interaction.create({
+        data: {
+          action: "question_created", // Assuming this is a string type
+          user: { connect: { id: author } },
+          question: { connect: { id: newQuestion.id } },
+        },
+      });
+
+      const tagInteractions = tagIds.map((tagId) => ({
+        interactionId: newInteraction.id,
+        tagId,
+      }));
+
+      await tx.tagInteraction.createMany({
+        data: tagInteractions,
       });
 
       // Add +5 points to user's reputation
@@ -147,51 +169,52 @@ export const getQuestions = async (
       };
     }
 
-    const questions = await db.question.findMany({
-      where: searchOption,
+    // Refactor to promise all to execute 2 query at the same time
+    const [questionsCount, questions] = await Promise.all([
+      db.question.count({
+        where: searchOption,
+      }),
+      db.question.findMany({
+        where: searchOption,
 
-      select: {
-        id: true,
-        title: true,
-        views: true,
-        createdAt: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
+        select: {
+          id: true,
+          title: true,
+          views: true,
+          createdAt: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
           },
-        },
-        tagOnQuestion: {
-          select: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
+          tagOnQuestion: {
+            select: {
+              tag: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
           },
-        },
-        userUpvotes: {
-          select: {
-            id: true,
+          userUpvotes: {
+            select: {
+              id: true,
+            },
+          },
+          userAnswers: {
+            select: {
+              id: true,
+            },
           },
         },
-        userAnswers: {
-          select: {
-            id: true,
-          },
-        },
-      },
-      skip: skipAmount,
-      take: +pageSize,
-      orderBy: sortOption,
-    });
-
-    // Count the total number of questions in the db
-    const questionsCount = await db.question.count({
-      where: searchOption,
-    });
+        skip: skipAmount,
+        take: +pageSize,
+        orderBy: sortOption,
+      }),
+    ]);
 
     return res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
@@ -361,6 +384,8 @@ export const upvoteQuestion = async (
   }
 };
 
+//////////////////////////////////////////////////////////////
+
 // Downvote a question
 export const downvoteQuestion = async (
   req: express.Request,
@@ -489,5 +514,343 @@ export const getTop5Questions = async (
       error: error,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
     });
+  }
+};
+
+///////////////////////////////////////////////
+
+// bookmark/unbookmark a question
+export const boormarkQuestionFn = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { questionId, userId } = BookmarkQuestionValidator.parse(req.body);
+
+    await db.$transaction(async (tx) => {
+      const bookmarkQuestion = await tx.userSavedQuestion.findFirst({
+        where: { questionId, userId },
+      });
+
+      if (bookmarkQuestion) {
+        // If user already bookmark this question then unbookmark it
+        await tx.userSavedQuestion.delete({
+          where: {
+            id: bookmarkQuestion.id,
+          },
+        });
+      } else {
+        await tx.userSavedQuestion.create({
+          data: {
+            questionId,
+            userId,
+          },
+        });
+      }
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+    });
+  } catch (error) {
+    console.log(error);
+
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+////////////////////////////////////////////////////////////
+
+// Find bookmarked Questions
+export const findBookmarkedQuestions = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  // Take out the information of the current login user
+  // @ts-ignore
+  const currentUser = req.user as User;
+
+  try {
+    const {
+      filter,
+      page = 1,
+      pageSize = 5,
+      searchQuery,
+    } = req.query as GetQuestionsQuery;
+
+    const skipAmount = (page - 1) * pageSize;
+
+    // Order of the questions
+    let sortOption = {};
+
+    // For search questions
+    let searchOption = {};
+
+    switch (filter) {
+      case "newest":
+        sortOption = {
+          dateAdded: "asc",
+        };
+        break;
+      case "oldest":
+        sortOption = {
+          dateAdded: "desc",
+        };
+
+      default:
+        break;
+    }
+
+    if (searchQuery) {
+      searchOption = {
+        userId: currentUser.id,
+        OR: [
+          {
+            question: {
+              content: {
+                contains: searchQuery,
+                mode: "insensitive",
+              },
+              title: {
+                contains: searchQuery,
+                mode: "insensitive",
+              },
+            },
+          },
+        ],
+      };
+    } else {
+      searchOption = {
+        userId: currentUser.id,
+      };
+    }
+
+    const bookmarkedQuestions = await db.userSavedQuestion.findMany({
+      where: searchOption,
+
+      select: {
+        question: {
+          select: {
+            id: true,
+            author: {
+              select: {
+                name: true,
+                image: true,
+                id: true,
+              },
+            },
+            _count: {
+              select: {
+                userUpvotes: true,
+                userAnswers: true,
+              },
+            },
+            tagOnQuestion: {
+              select: {
+                tag: {
+                  select: {
+                    name: true,
+                    id: true,
+                  },
+                },
+              },
+            },
+
+            createdAt: true,
+            title: true,
+            views: true,
+          },
+        },
+      },
+
+      skip: skipAmount,
+      take: +pageSize,
+      orderBy: sortOption,
+    });
+
+    const questionsCount = await db.userSavedQuestion.count({
+      where: searchOption,
+    });
+
+    return res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: bookmarkedQuestions,
+      results: questionsCount,
+    });
+  } catch (error) {
+    console.log(error);
+
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+//////////////////////////////////////////////////////////
+
+// Get recommendation questions for each user based on interaction with tags
+export const getRecommendedQuestions = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const {
+      page = 1,
+      pageSize = 10,
+      searchQuery,
+    } = req.query as RecommendedParams;
+
+    //@ts-ignore
+    const currentUser = req.user as User;
+    console.log(currentUser);
+
+    // Paginate
+    const skipAmount = (page - 1) * pageSize;
+
+    // Find all the tags that user has interacted with
+    const userInteractions = await db.interaction.findMany({
+      where: { userId: currentUser.id },
+      select: {
+        TagInteractions: {
+          select: {
+            tagId: true,
+          },
+        },
+      },
+    });
+
+    // Extract tags from user's interaction
+    const userTags = userInteractions.reduce((tags, interaction) => {
+      if (interaction.TagInteractions.length > 0) {
+        tags = tags.concat(
+          interaction.TagInteractions.map(
+            (tagInteraction) => tagInteraction.tagId
+          )
+        );
+      }
+      return tags;
+    }, [] as string[]);
+
+    // Get distinct tag IDs from user's interaction
+    const distincUserTagIDs = Array.from(new Set(userTags));
+
+    // Base query for questions
+    let query: Prisma.QuestionWhereInput = {
+      AND: [
+        {
+          authorId: {
+            // Exclude user's own questions
+            not: currentUser.id,
+          },
+        },
+      ],
+    };
+
+    // If the user has interacted with tags
+    if (distincUserTagIDs.length > 0) {
+      query = {
+        tagOnQuestion: {
+          some: {
+            tagId: {
+              in: distincUserTagIDs,
+            },
+          },
+        },
+      };
+    }
+
+    // Add search query if provided
+    if (searchQuery) {
+      query = {
+        ...query,
+        OR: [
+          {
+            title: {
+              contains: searchQuery,
+              mode: "insensitive",
+            },
+            content: {
+              contains: searchQuery,
+              mode: "insensitive",
+            },
+          },
+        ],
+      };
+    }
+
+    // If no interactions or search query, use fallback to show trending or recent questions
+    if (distincUserTagIDs.length === 0 && !searchQuery) {
+      query = {
+        ...query,
+        OR: [
+          {
+            views: { gte: 100 },
+            createdAt: {
+              // Show questions added in the last week
+              gte: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
+            },
+          },
+        ],
+      };
+    }
+
+    // Execute the both query at the same time to find the number of the total results and the result list
+    const [totalQuestions, recommendedQuestions] = await Promise.all([
+      db.question.count({ where: query }),
+      db.question.findMany({
+        where: query,
+        select: {
+          id: true,
+          title: true,
+          views: true,
+          createdAt: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+          tagOnQuestion: {
+            select: {
+              tag: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          userUpvotes: {
+            select: {
+              id: true,
+            },
+          },
+          userAnswers: {
+            select: {
+              id: true,
+            },
+          },
+        },
+        skip: skipAmount,
+        take: +pageSize,
+      }),
+    ]);
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      results: totalQuestions,
+      data: recommendedQuestions,
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error: error, statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR });
   }
 };
