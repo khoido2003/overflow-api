@@ -8,7 +8,6 @@ import {
 import HTTP_STATUS_CODES from "../constants/status-code";
 import { GetQuestionsQuery, RecommendedParams } from "types/shared";
 import { Prisma, User } from "@prisma/client";
-import { user } from "routers/user";
 
 // Create new question
 export const createQuestion = async (

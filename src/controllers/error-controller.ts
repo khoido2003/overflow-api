@@ -1,6 +1,5 @@
 import express from "express";
 import { ZodError } from "zod";
-import AppError from "utils/app-error";
 import HTTP_STATUS_CODES from "../constants/status-code";
 import { Prisma } from "@prisma/client";
 
