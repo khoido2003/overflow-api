@@ -1,5 +1,5 @@
 import express from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 import { db } from "../lib/db";

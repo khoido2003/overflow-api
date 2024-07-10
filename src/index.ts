@@ -7,7 +7,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import multer from "multer";
-import sharp from "sharp";
 // import xssClean from "xss-clean";
 // import rateLimit from "express-rate-limit";
 
