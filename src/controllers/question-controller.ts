@@ -2,10 +2,12 @@ import express from "express";
 import { db } from "../lib/db";
 import {
   AskQuestionValidator,
+  BookmarkQuestionValidator,
   UpvoteDownvoteQuestionValidator,
 } from "../lib/validators/question";
 import HTTP_STATUS_CODES from "../constants/status-code";
 import { GetQuestionsQuery } from "types/shared";
+import { User } from "@prisma/client";
 
 // Create new question
 export const createQuestion = async (
@@ -485,6 +487,178 @@ export const getTop5Questions = async (
     });
   } catch (error) {
     console.log(error);
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+///////////////////////////////////////////////
+
+export const boormarkQuestionFn = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { questionId, userId } = BookmarkQuestionValidator.parse(req.body);
+
+    await db.$transaction(async (tx) => {
+      const bookmarkQuestion = await tx.userSavedQuestion.findFirst({
+        where: { questionId, userId },
+      });
+
+      if (bookmarkQuestion) {
+        // If user already bookmark this question then unbookmark it
+        await tx.userSavedQuestion.delete({
+          where: {
+            id: bookmarkQuestion.id,
+          },
+        });
+      } else {
+        await tx.userSavedQuestion.create({
+          data: {
+            questionId,
+            userId,
+          },
+        });
+      }
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+    });
+  } catch (error) {
+    console.log(error);
+
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+// Find bookmarked Questions
+export const findBookmarkedQuestions = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  // Take out the information of the current login user
+  // @ts-ignore
+  const currentUser = req.user as User;
+
+  try {
+    const {
+      filter,
+      page = 1,
+      pageSize = 5,
+      searchQuery,
+    } = req.query as GetQuestionsQuery;
+
+    const skipAmount = (page - 1) * pageSize;
+
+    // Order of the questions
+    let sortOption = {};
+
+    // For search questions
+    let searchOption = {};
+
+    switch (filter) {
+      case "newest":
+        sortOption = {
+          dateAdded: "asc",
+        };
+        break;
+      case "oldest":
+        sortOption = {
+          dateAdded: "desc",
+        };
+
+      default:
+        break;
+    }
+
+    if (searchQuery) {
+      searchOption = {
+        userId: currentUser.id,
+        OR: [
+          {
+            question: {
+              content: {
+                contains: searchQuery,
+                mode: "insensitive",
+              },
+              title: {
+                contains: searchQuery,
+                mode: "insensitive",
+              },
+            },
+          },
+        ],
+      };
+    } else {
+      searchOption = {
+        userId: currentUser.id,
+      };
+    }
+
+    const bookmarkedQuestions = await db.userSavedQuestion.findMany({
+      where: searchOption,
+
+      select: {
+        question: {
+          select: {
+            id: true,
+            author: {
+              select: {
+                name: true,
+                image: true,
+                id: true,
+              },
+            },
+            _count: {
+              select: {
+                userUpvotes: true,
+                userAnswers: true,
+              },
+            },
+            tagOnQuestion: {
+              select: {
+                tag: {
+                  select: {
+                    name: true,
+                    id: true,
+                  },
+                },
+              },
+            },
+
+            createdAt: true,
+            title: true,
+            views: true,
+          },
+        },
+      },
+
+      skip: skipAmount,
+      take: +pageSize,
+      orderBy: sortOption,
+    });
+
+    const questionsCount = await db.userSavedQuestion.count({
+      where: searchOption,
+    });
+
+    return res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: bookmarkedQuestions,
+      results: questionsCount,
+    });
+  } catch (error) {
+    console.log(error);
+
     next({
       error: error,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
