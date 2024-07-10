@@ -18,17 +18,52 @@ export const createAnswerQuestion = async (
       req.body
     );
 
-    const answer = await db.userAnswerQuestion.create({
-      data: {
-        content,
-        userId: author,
-        questionId,
-      },
+    const result = await db.$transaction(async (tx) => {
+      const answer = await tx.userAnswerQuestion.create({
+        data: {
+          content,
+          userId: author,
+          questionId,
+        },
+      });
+
+      // Create an interaction record for recommendation filter when get all questions
+      const newInteraction = await tx.interaction.create({
+        data: {
+          action: "question_answer", // Assuming this is a string type
+          user: { connect: { id: author } },
+          question: { connect: { id: questionId } },
+        },
+      });
+
+      const question = await tx.question.findFirst({
+        where: {
+          id: questionId,
+        },
+        select: {
+          tagOnQuestion: {
+            select: {
+              tagId: true,
+            },
+          },
+        },
+      });
+
+      const tagInteractions = question.tagOnQuestion.map((tagId) => ({
+        interactionId: newInteraction.id,
+        tagId: tagId.tagId,
+      }));
+
+      await tx.tagInteraction.createMany({
+        data: tagInteractions,
+      });
+
+      return answer;
     });
 
     res.status(HTTP_STATUS_CODES.CREATED).json({
       message: "Success",
-      data: answer,
+      data: result,
     });
   } catch (error) {
     console.log(error);

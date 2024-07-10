@@ -11,3 +11,9 @@ export interface GetAnswersQuery {
   searchQuery?: string;
   filter?: string;
 }
+
+export interface RecommendedParams {
+  page?: number;
+  pageSize?: number;
+  searchQuery?: string;
+}
