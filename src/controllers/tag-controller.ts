@@ -54,7 +54,17 @@ export const getAllTags = async (
     }
 
     const tags = await db.tag.findMany({
-      where: searchOptions,
+      where: {
+        AND: [
+          // only get tags that have questions
+          {
+            tagOnQuestion: {
+              some: {},
+            },
+          },
+          searchOptions,
+        ],
+      },
       select: {
         id: true,
         name: true,
@@ -72,7 +82,16 @@ export const getAllTags = async (
     });
 
     const tagsCount = await db.tag.count({
-      where: searchOptions,
+      where: {
+        AND: [
+          {
+            tagOnQuestion: {
+              some: {},
+            },
+          },
+          searchOptions,
+        ],
+      },
     });
 
     res.status(HTTP_STATUS_CODES.OK).json({
@@ -86,14 +105,43 @@ export const getAllTags = async (
   }
 };
 
-// TODO: FIX THIS
+export const getTagById = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const id = req.params.id;
+
+    const tag = await db.tag.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+    return res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: {
+        ...tag,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error, statusCode: HTTP_STATUS_CODES.BAD_REQUEST });
+  }
+};
+
 export const getQuestionByTagId = async (
   req: express.Request,
   res: express.Response,
   next: express.NextFunction
 ) => {
   try {
-    const { id } = req.params;
+    const { tagId } = req.params;
+
     const {
       page = 1,
       pageSize = 5,
@@ -119,26 +167,11 @@ export const getQuestionByTagId = async (
         },
       ];
 
-    const tag = await db.tag.findUnique({
-      where: { id: id },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    if (!tag) {
-      return next({
-        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
-        error: "Tag not found",
-      });
-    }
-
     const questions = await db.tagOnQuestion.findMany({
       where: {
         AND: [
           {
-            tagId: id,
+            tagId: tagId,
           },
           {
             question: searchOption,
@@ -183,22 +216,27 @@ export const getQuestionByTagId = async (
         },
       },
       skip: skipAmount,
-      take: pageSize,
+      take: +pageSize,
     });
 
-    if (!questions) {
-      return next({
-        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
-        error: "Questions not found",
-      });
-    }
+    const questionsCount = await db.tagOnQuestion.count({
+      where: {
+        AND: [
+          {
+            tagId: tagId,
+          },
+          {
+            question: searchOption,
+          },
+        ],
+      },
+    });
 
     return res.status(HTTP_STATUS_CODES.OK).json({
       message: "Success",
       data: {
-        tag,
-        questionsCount: questions.length,
-        questions,
+        questionsCount,
+        questions: questions.map((q) => q.question),
       },
     });
   } catch (error) {

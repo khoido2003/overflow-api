@@ -51,7 +51,7 @@ export const getAllUsers = async (
             },
           },
           {
-            username: {
+            email: {
               contains: searchQuery,
               mode: "insensitive",
             },
@@ -320,6 +320,63 @@ export const updateUserProfile = async (
     });
   } catch (error) {
     console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const getTopTagByUserId = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const userId = req.params.userId;
+
+    const tagCount = await db.tagInteraction.groupBy({
+      by: ["tagId"],
+      _count: {
+        tagId: true,
+      },
+      where: {
+        interaction: {
+          userId: userId,
+        },
+      },
+      orderBy: {
+        _count: {
+          tagId: "desc",
+        },
+      },
+      take: 5,
+    });
+
+    const topTags = await Promise.all(
+      tagCount.map(async (tag) => {
+        const tagInfo = await db.tag.findFirst({
+          where: {
+            id: tag.tagId,
+          },
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+
+        return {
+          ...tagInfo,
+          count: tag._count.tagId,
+        };
+      })
+    );
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: topTags,
+    });
+  } catch (error) {
     next({
       error,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
