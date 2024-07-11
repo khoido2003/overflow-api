@@ -1,4 +1,4 @@
-import express from "express";
+import express, { NextFunction } from "express";
 import { db } from "../lib/db";
 import {
   AskQuestionValidator,
@@ -847,6 +847,143 @@ export const getRecommendedQuestions = async (
       message: "Success",
       results: totalQuestions,
       data: recommendedQuestions,
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error: error, statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR });
+  }
+};
+
+///////////////////////////////////////////////////
+
+// Edit a question by ID
+
+export const editQuestion = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const { content, tags, title, author } = AskQuestionValidator.parse(
+      req.body
+    );
+
+    const result = await db.$transaction(async (tx) => {
+      const editedQuestion = await tx.question.update({
+        where: {
+          id: id,
+        },
+        data: {
+          content,
+          authorId: author,
+          title,
+        },
+      });
+
+      // Create a new tag or use an existing one
+      const tagIds = await Promise.all(
+        tags.map(async (tag) => {
+          const existingTag = await tx.tag.findFirst({
+            where: {
+              name: {
+                equals: tag,
+                mode: "insensitive",
+              },
+            },
+          });
+
+          if (existingTag) {
+            return existingTag.id;
+          }
+
+          // if tag does not exist -> create a new one
+          const newTag = await tx.tag.create({
+            data: {
+              name: tag,
+            },
+          });
+          return newTag.id;
+        })
+      );
+
+      // Create tag associated in bulk
+      const tagsAssociations = tagIds.map((tagId) => ({
+        questionId: editedQuestion.id,
+        tagId,
+      }));
+
+      // Before save the new tags list, delete all the old tags
+      await tx.tagOnQuestion.deleteMany({
+        where: {
+          questionId: editedQuestion.id,
+        },
+      });
+
+      // Save the new tags list
+      await tx.tagOnQuestion.createMany({
+        data: tagsAssociations,
+      });
+
+      // Create an interaction record since the user has update the question
+      const newInteraction = await tx.interaction.create({
+        data: {
+          action: "question_edited",
+          user: {
+            connect: {
+              id: author,
+            },
+          },
+          question: {
+            connect: {
+              id: editedQuestion.id,
+            },
+          },
+        },
+      });
+
+      const tagInteractions = tagIds.map((tagId) => ({
+        interactionId: newInteraction.id,
+        tagId,
+      }));
+
+      await tx.tagInteraction.createMany({
+        data: tagInteractions,
+      });
+
+      return editedQuestion;
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: result,
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error: error, statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR });
+  }
+};
+
+//////////////////////////////////////////////////
+
+// Delete question by ID
+export const deleteQuestion = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+
+    const question = await db.question.delete({
+      where: {
+        id: id,
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.NO_CONTENT).json({
+      message: "Success",
     });
   } catch (error) {
     console.log(error);

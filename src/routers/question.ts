@@ -2,7 +2,9 @@ import { protect } from "../controllers/auth-controller";
 import {
   boormarkQuestionFn,
   createQuestion,
+  deleteQuestion,
   downvoteQuestion,
+  editQuestion,
   findBookmarkedQuestions,
   getQuestionByID,
   getQuestions,
@@ -31,5 +33,9 @@ export const question = (router: express.Router) => {
 
   router.route("/questions/views/:id").post(updateQuestionView);
 
-  router.route("/questions/:id").get(getQuestionByID);
+  router
+    .route("/questions/:id")
+    .get(getQuestionByID)
+    .patch(protect, editQuestion)
+    .delete(protect, deleteQuestion);
 };
