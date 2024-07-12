@@ -8,6 +8,7 @@ import {
   changePasswordCredentialsValidator,
   changePasswordOauthValidator,
   changePasswordPostmanValidator,
+  deleteAccountValidator,
   loginValidator,
   signUpValidator,
 } from "../lib/validators/auth";
@@ -438,5 +439,60 @@ export const changePasswordPostman = async (
       error,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
     });
+  }
+};
+
+////////////////////////////////////////
+
+export const deleteAccount = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { userId } = req.params;
+    const { password } = deleteAccountValidator.parse(req.body);
+
+    // Check if the user trying to delete is the same as the logged in user
+    // @ts-ignore
+    if (userId !== req.user.id) {
+      return next({
+        statusCode: HTTP_STATUS_CODES.FORBIDDEN,
+        error: "You are not allowed to delete this account.",
+        code: 403,
+      });
+    }
+
+    const user = await db.user.findFirst({
+      where: {
+        id: userId,
+      },
+      select: {
+        password: true,
+      },
+    });
+
+    if (!(await comparePassword(password, user.password)))
+      return next({
+        error: {
+          message: "Wrong password!",
+          code: 401,
+        },
+        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
+      });
+
+    // Delete the account
+    await db.user.delete({
+      where: {
+        id: userId,
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.NO_CONTENT).json({
+      message: "Account deleted successfully!",
+    });
+  } catch (error) {
+    console.log(error);
+    next({ error, statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR });
   }
 };

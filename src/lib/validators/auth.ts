@@ -69,6 +69,10 @@ export const changePasswordPostmanValidator = z
     path: ["passwordConfirm"],
   });
 
+export const deleteAccountValidator = z.object({
+  password: z.string(),
+});
+
 ///////////////////////////////////////////////////////////////////
 
 // ---- Types ----
@@ -80,3 +84,4 @@ export type changePasswordCredentialsPayload = z.infer<
 export type changePasswordOauthPayload = z.infer<
   typeof changePasswordOauthValidator
 >;
+export type deleteAccountPayload = z.infer<typeof deleteAccountValidator>;

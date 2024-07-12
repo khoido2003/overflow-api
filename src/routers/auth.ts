@@ -4,6 +4,7 @@ import {
   changePasswordCredentials,
   changePasswordOauth,
   changePasswordPostman,
+  deleteAccount,
   getAccountUser,
   login,
   logout,
@@ -24,6 +25,8 @@ const auth = (router: express.Router) => {
     changePasswordCredentials
   );
   router.post("/newPassword/oauth/:userId", protect, changePasswordOauth);
+
+  router.delete("/account/:userId", protect, deleteAccount);
 
   router.get(
     "/hello",
