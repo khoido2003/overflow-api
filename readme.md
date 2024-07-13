@@ -42,6 +42,20 @@ Once the repository is cloned, switch to the development branch to start working
   git checkout development
 ```
 
+### Step 3: Create a `.env` file in the root of the backend directory and add the necessary environment variables:
+
+```env
+PORT=
+NODE_ENV=
+CORS_ORIGIN=
+JWT_SECRET=
+JWT_EXPIRES_IN=
+JWT_COOKIES_EXPIRES_IN=
+UPLOADTHING_SECRET=
+UPLOADTHING_APP_ID=
+DATABASE_URL=
+```
+
 ## Making Changes and Committing
 
 Now you can make your changes to the codebase. After making changes, follow these steps to commit them:
