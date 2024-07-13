@@ -1,8 +1,27 @@
 # Overflow API - README
 
+<div align="center">
+  <img src="https://code-overflow-vn.vercel.app/assets/logo.svg" alt="Code Overflow Icon" width="100">
+</div>
+
+<div align="center">
+  <img src="https://img.shields.io/badge/Code-Node.js-informational?style=flat&color=informational&logo=node.js">
+  <img src="https://img.shields.io/badge/Code-Next.js-informational?style=flat&color=informational&logo=next.js">
+  <img src="https://img.shields.io/badge/Code-React-informational?style=flat&color=informational&logo=react">
+  <img src="https://img.shields.io/badge/Style-Tailwind%20CSS-informational?style=flat&color=informational&logo=tailwind-css">
+  <img src="https://img.shields.io/badge/ORM-Prisma-informational?style=flat&color=success&logo=prisma">
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-informational?style=flat&color=success&logo=postgresql">
+  <img src="https://img.shields.io/badge/Authentication-Auth.js-informational?style=flat&color=success&logo=auth0">
+  <img src="https://img.shields.io/badge/Language-TypeScript-informational?style=flat&color=blue&logo=typescript">
+</div>
+
 =====================
 
 This repository contains the source code for Overflow API. Below are instructions on how to clone the repository, work on the development branch, and submit changes via pull requests.
+
+## Frontend Setup
+
+The Frontend setup instructions can be found in the [frontend repository](https://github.com/khoido2003/overflow-web).
 
 ## Cloning the Repository
 
