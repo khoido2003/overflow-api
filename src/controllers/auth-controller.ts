@@ -4,7 +4,13 @@ import bcrypt from "bcryptjs";
 
 import { db } from "../lib/db";
 import { User } from "@prisma/client";
-import { loginValidator, signUpValidator } from "../lib/validators/auth";
+import {
+  changePasswordCredentialsValidator,
+  changePasswordOauthValidator,
+  changePasswordPostmanValidator,
+  loginValidator,
+  signUpValidator,
+} from "../lib/validators/auth";
 import HTTP_STATUS_CODES from "../constants/status-code";
 
 ////////////////////////////////////////////////
@@ -222,6 +228,214 @@ export const protect = async (
     console.log(err);
     return next({
       error: err,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+///////////////////////////////////////////////////
+
+// Find user that signIn by OAuth instead of credentials
+
+// Since only user using OAuth have the infomation in the Account table so we will use that to decide whether who is logged in with OAuth or Credentials
+export const getAccountUser = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { userId } = req.params;
+    const account = await db.account.findFirst({
+      where: {
+        userId: userId,
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: account,
+    });
+  } catch (error) {
+    console.error(error);
+    return next({
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+      error: error.message,
+    });
+  }
+};
+
+////////////////////////////////////////////
+
+export const changePasswordCredentials = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { userId } = req.params;
+
+    const { newPassword, oldPassword, passwordConfirm } =
+      changePasswordCredentialsValidator.parse(req.body);
+
+    const currentUser = await db.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+
+    // If the current user is not exists
+    if (!currentUser)
+      return next({
+        error: {
+          message: "User not found!",
+          code: 404,
+        },
+        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+      });
+
+    // If the password is invalid
+    if (
+      !currentUser ||
+      !(await comparePassword(oldPassword, currentUser.password))
+    )
+      return next({
+        error: {
+          message: "Wrong password!",
+          code: 401,
+        },
+        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
+      });
+
+    // Update user password
+    await db.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        password: await hashPassword(newPassword),
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Password changed successfully!",
+      code: 200,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+//////////////////////////////////////////
+
+export const changePasswordOauth = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { userId } = req.params;
+
+    const { newPassword: password, passwordConfirm } =
+      changePasswordOauthValidator.parse(req.body);
+
+    const currentUser = await db.user.findFirst({
+      where: {
+        id: userId,
+      },
+    });
+
+    // If the current user is not exists
+    if (!currentUser)
+      return next({
+        error: {
+          message: "User not found!",
+          code: 404,
+        },
+        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+      });
+
+    // Update user password
+    await db.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        password: await hashPassword(password),
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Password changed successfully!",
+      code: 200,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error: error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+///////////////////////////////////////////
+
+// Change password for user/admin access on Postman
+
+export const changePasswordPostman = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { email, newPassword, passwordConfirm, password } =
+      changePasswordPostmanValidator.parse(req.body);
+
+    const user = await db.user.findFirst({
+      where: {
+        email: email,
+      },
+    });
+
+    if (!user) {
+      return next({
+        error: {
+          message: "User not found!",
+          code: 404,
+        },
+        statusCode: HTTP_STATUS_CODES.NOT_FOUND,
+      });
+    }
+
+    // If the password is invalid
+    if (!user || !(await comparePassword(password, user.password)))
+      return next({
+        error: {
+          message: "Wrong password!",
+          code: 401,
+        },
+        statusCode: HTTP_STATUS_CODES.UNAUTHORIZED,
+      });
+
+    await db.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password: await hashPassword(newPassword),
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Password changed successfully!",
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
       statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
     });
   }

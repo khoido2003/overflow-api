@@ -1,11 +1,30 @@
 import express from "express";
 
-import { login, logout, protect, signUp } from "../controllers/auth-controller";
+import {
+  changePasswordCredentials,
+  changePasswordOauth,
+  changePasswordPostman,
+  getAccountUser,
+  login,
+  logout,
+  protect,
+  signUp,
+} from "../controllers/auth-controller";
 
 const auth = (router: express.Router) => {
   router.post("/register", signUp);
   router.post("/login", login);
   router.get("/logout", logout);
+  router.post("/changePassword", protect, changePasswordPostman);
+
+  router.get("/oauth/:userId", protect, getAccountUser);
+  router.post(
+    "/newPassword/credentials/:userId",
+    protect,
+    changePasswordCredentials
+  );
+  router.post("/newPassword/oauth/:userId", protect, changePasswordOauth);
+
   router.get(
     "/hello",
     protect,
