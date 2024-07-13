@@ -281,3 +281,86 @@ export const downvoteAnswer = async (
     });
   }
 };
+
+export const editAnswer = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const { author, content, questionId } = AnswerQuestionValidator.parse(
+      req.body
+    );
+
+    const editedAnswer = await db.userAnswerQuestion.update({
+      where: { id: id },
+      data: {
+        content,
+        userId: author,
+        questionId,
+        createdAt: new Date(),
+      },
+    });
+
+    res.status(HTTP_STATUS_CODES.OK).json({
+      message: "Success",
+      data: editedAnswer,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const getAnswerById = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const answer = await db.userAnswerQuestion.findFirst({
+      where: {
+        id: id,
+      },
+    });
+    res.status(HTTP_STATUS_CODES.NO_CONTENT).json({
+      message: "Success",
+      data: answer,
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
+
+export const deleteAnswerById = async (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const answer = await db.userAnswerQuestion.delete({
+      where: {
+        id: id,
+      },
+    });
+    res.status(HTTP_STATUS_CODES.NO_CONTENT).json({
+      message: "Success",
+    });
+  } catch (error) {
+    console.log(error);
+    next({
+      error,
+      statusCode: HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+    });
+  }
+};
